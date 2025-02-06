@@ -3,24 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dynamic Heart with Glow</title>
+  <title>Dynamic Heart with Photo Upload</title>
   <style>
     body {
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
+      justify-content: center;
       min-height: 100vh;
       margin: 0;
       background: linear-gradient(135deg, #fbeff2, #ffe6f0);
-      overflow: hidden;
+      position: relative;
     }
 
     .heart {
-      position: relative;
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-45deg);
       width: 100px;
       height: 100px;
       background: linear-gradient(135deg, #ff5f5f, #ff2e93);
-      transform: rotate(-45deg);
       animation: beat 1.2s infinite;
       box-shadow: 0 0 20px rgba(255, 92, 92, 0.8), 0 0 40px rgba(255, 92, 92, 0.6);
     }
@@ -47,39 +50,162 @@
 
     @keyframes beat {
       0%, 100% {
-        transform: scale(1) rotate(-45deg);
-        box-shadow: 0 0 20px rgba(255, 92, 92, 0.8), 0 0 40px rgba(255, 92, 92, 0.6);
+        transform: translate(-50%, -50%) scale(1) rotate(-45deg);
       }
       50% {
-        transform: scale(1.3) rotate(-45deg);
-        box-shadow: 0 0 30px rgba(255, 255, 255, 1), 0 0 60px rgba(255, 92, 92, 0.8);
+        transform: translate(-50%, -50%) scale(1.3) rotate(-45deg);
       }
     }
 
-    .glow {
+    .photo-section {
       position: absolute;
-      width: 200px;
-      height: 200px;
-      background: radial-gradient(circle, rgba(255, 92, 92, 0.4), rgba(255, 255, 255, 0));
-      animation: glowPulse 1.2s infinite;
-      border-radius: 50%;
-      z-index: -1;
+      top: 55%;
+      width: 100%;
+      text-align: center;
     }
 
-    @keyframes glowPulse {
-      0%, 100% {
-        transform: scale(1);
-        opacity: 0.6;
-      }
-      50% {
-        transform: scale(1.5);
-        opacity: 1;
-      }
+    #photoPreview {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      padding: 20px;
+      max-width: 80%;
+      margin: auto;
+    }
+
+    .photo-preview-item {
+      position: absolute;
+      transition: transform 0.5s ease;
+    }
+
+    .photo-preview-item img {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 50%;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s ease;
+      cursor: pointer;
+    }
+
+    .photo-preview-item img:hover {
+      transform: scale(1.2) rotate(-10deg);
+    }
+
+    .hidden-input {
+      display: none;
+    }
+
+    .custom-upload-button {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #ff5f5f;
+      color: white;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .custom-upload-button:hover {
+      background-color: #ff2e93;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal img {
+      max-width: 80%;
+      max-height: 80%;
+      border-radius: 10px;
     }
   </style>
 </head>
 <body>
 <div class="heart"></div>
-<div class="glow"></div>
+
+<div class="photo-section">
+  <label for="photoInput" class="custom-upload-button">选择照片</label>
+  <input type="file" id="photoInput" accept="image/*" multiple class="hidden-input">
+  <div id="photoPreview"></div>
+</div>
+
+<div id="photoModal" class="modal" onclick="closeModal()">
+  <img id="modalImage" src="" alt="Enlarged Photo">
+</div>
+
+<script>
+  const photoPreview = document.getElementById('photoPreview');
+  const modal = document.getElementById('photoModal');
+  const modalImage = document.getElementById('modalImage');
+
+  function savePhotosToLocalStorage() {
+    const images = document.querySelectorAll('.photo-preview-item img');
+    const photoArray = [];
+    images.forEach(img => {
+      photoArray.push(img.src);
+    });
+    localStorage.setItem('savedPhotos', JSON.stringify(photoArray));
+  }
+
+  function loadPhotosFromLocalStorage() {
+    const savedPhotos = JSON.parse(localStorage.getItem('savedPhotos')) || [];
+    savedPhotos.forEach((src, i) => addPhoto(src, i));
+  }
+
+  function addPhoto(src, index) {
+    const imgElement = document.createElement('img');
+    imgElement.src = src;
+    imgElement.onclick = function() { openModal(src); };
+
+    const wrapper = document.createElement('div');
+    wrapper.classList.add('photo-preview-item');
+    wrapper.appendChild(imgElement);
+
+    wrapper.style.left = `${Math.random() * 70 + 10}%`;
+    wrapper.style.top = `${Math.random() * 30 + 10}%`;
+
+    photoPreview.appendChild(wrapper);
+  }
+
+  function openModal(src) {
+    modal.style.display = 'flex';
+    modalImage.src = src;
+  }
+
+  function closeModal() {
+    modal.style.display = 'none';
+  }
+
+  document.getElementById('photoInput').addEventListener('change', function(event) {
+    const files = event.target.files;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        addPhoto(e.target.result, i);
+        savePhotosToLocalStorage();
+      };
+
+      reader.readAsDataURL(file);
+    }
+  });
+
+  window.addEventListener('load', loadPhotosFromLocalStorage);
+</script>
 </body>
 </html>
